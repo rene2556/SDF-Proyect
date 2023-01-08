@@ -77,25 +77,22 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                 //ID del campo
                 let fieldName = scriptContext.fieldId;
                 //ID de la transacción (Custpage)
-                let custpageTransactionID = recordObj.getValue('custpage_transaction') || "";
-
 
                 if (fieldName === 'custpage_transaction') {
-                    if (!custpageTransactionID) {
-                        //ID de la transacción
-                        let transactionID = recordObj.getValue('custrecord_lmry_us_transaction') || "";
-                        recordObj.setValue({
-                            fieldId: 'custrecord_lmry_us_transaction',
-                            value: transactionID,
-                            ignoreFieldChange: false
-                        });
-                        hideAndView(recordObj);
-                    }
+
+                    //ID de la transacción
+                    let transactionID = recordObj.getValue('custpage_transaction') || "";
+                    recordObj.setValue({
+                        fieldId: 'custrecord_lmry_us_transaction',
+                        value: transactionID
+                    });
+                    hideAndView(recordObj);
+
                 }
 
                 if (fieldName === 'custpage_subsidiary') {
                     //ID de la Subsidiaria
-                    let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary') || "";
+                    let subsidiaryID = recordObj.getValue('custpage_subsidiary') || "";
                     recordObj.setValue('custrecord_lmry_us_subsidiary', subsidiaryID);
                     setupTax = getSetupTax(recordObj);
                     hideAndView(recordObj);
@@ -335,7 +332,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
             //ocultar
             let hideFields = fields["none"];
 
-            hideFields = forEach((fieldName) => {
+            hideFields.forEach((fieldName) => {
                 let fieldObj = recordObj.getFields(fieldName);
                 if (fieldObj) {
                     fieldObj.isDisplay = false;

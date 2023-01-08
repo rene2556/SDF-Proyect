@@ -92,7 +92,10 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
                                     });
 
                                     //Llenar con las subsidiarias de la entidad(customer, vendor)
-                                    fillSubsidiaries(select_subsidiary, recordObj)
+                                    fillSubsidiaries(select_subsidiary, recordObj);
+
+                                    let subsidiary = recordObj.getValue("custrecord_lmry_us_subsidiary");
+                                    select_subsidiary.defaultValue = subsidiary;
                                 }
 
 
@@ -101,6 +104,11 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
                                     id: 'custpage_transaction',
                                     type: serverWidget.FieldType.SELECT,
                                     label: 'LATAM - TRANSACTION (SET)'
+                                });
+
+                                form.insertField({
+                                    field:select_transaction,
+                                    nextfield: 'custrecord_lmry_us_transaction'
                                 });
 
                                 //ocultar el campo real de las transacciones
@@ -161,13 +169,19 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
                         }
 
                         if (actionType ==  "edit" || actionType === "copy"){
+
+                            if (entity){
+                                form.getField('custrecord_lmry_us_entity').updateDisplayType({
+                                    displayType: serverWidget.FieldDisplayType.DISABLED
+                                });
+                            }
                             //Deshabilitar el campo subsidiary
-                            recordObj.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
+                            form.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
                                 displayType: serverWidget.FieldDisplayType.DISABLED
                             });
 
                             //Deshabilitar el campo transaccion
-                            recordObj.getField('custrecord_lmry_us_transaction').updateDisplayType({
+                            form.getField('custrecord_lmry_us_transaction').updateDisplayType({
                                 displayType: serverWidget.FieldDisplayType.DISABLED
                             });
 
@@ -328,7 +342,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
                 let subsidiarySearch = search.create({
                     type: searchType,
                     filters: [
-                        ["isinactive", "is", "F"], "AND",
+                        //["isinactive", "is", "F"], "AND",
                         ["entity", "anyof", entity]
                     ],
                     columns: ["subsidiary"]
