@@ -25,7 +25,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
          */
 
         let actionType = "";
-        let viewFields = {};
+        let fields = {};
         let setupTax = null;
         let FEAT_SUBSIDIARY = false;
 
@@ -47,8 +47,8 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
             actionType = scriptContext.mode;
             let recordObj = scriptContext.currentRecord;
             FEAT_SUBSIDIARY = runtime.isFeatureInEffect({feature: 'SUBSIDIARIES'});
-            viewFields = getViewFields();
-            console.log(viewFields)
+            fields = getViewFields();
+            console.log(fields)
             if (actionType === "create") {
                 setupTax = getSetupTax(recordObj);
                 console.log(setupTax);
@@ -291,7 +291,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                 let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
 
                 if (!country) {
-
+                    fields["none"].push(name);
                 } else {
                     let types = [];
                     let transactions = {
@@ -333,7 +333,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
             let hideFields = fields["none"];
 
             hideFields.forEach((fieldName) => {
-                let fieldObj = recordObj.getFields(fieldName);
+                let fieldObj = recordObj.getField(fieldName);
                 if (fieldObj) {
                     fieldObj.isDisplay = false;
                 }
@@ -359,11 +359,11 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                     isLibreConsigna = recordDocument.custrecord_lmry_es_libre_consigna;
                 }
 
-                let viewField = [];
+                let viewFields = [];
                 if (fields.hasOwnProperty(country)) {
                     if (transaction == 7) {
                         if (isExportacion && isNotaDebito) {
-                            viewField = fields[country].filter((f) => {
+                            viewFields = fields[country].filter((f) => {
                                 return f.type.includes("notaDebitoExportacion");
                             });
                         } else if (isNotaDebito) {
