@@ -9,6 +9,7 @@
             <recordtype>[scriptid=customrecord_lmry_universal_setting_v2]</recordtype>
             <status>RELEASED</status>
             <runasrole>ADMINISTRATOR</runasrole>
+            <allroles>T</allroles>
         </scriptdeployment>
     </scriptdeployments>
 </usereventscript>
