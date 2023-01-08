@@ -1,0 +1,15 @@
+<clientscript scriptid="customscript_test_aut_set_field_clnt_2_1">
+    <isinactive></isinactive>
+    <name>LatamReady - Automatic SetField CLNT 2.1</name>
+    <notifyowner>T</notifyowner>
+    <scriptfile>[/SuiteScripts/LatamReady2.1_SDF/LatamReady_37714/LatamReady_MainScripts/Product_Localization/Automatic_Setting/LMRY_Automatic_Set_Fields_CLNT_V2.1.js]</scriptfile>
+    <scriptdeployments>
+        <scriptdeployment scriptid="customdeploy_test_aut_set_field_clnt_2_1">
+            <isdeployed>T</isdeployed>
+            <loglevel>DEBUG</loglevel>
+            <recordtype>[scriptid=customrecord_lmry_universal_setting_v2]</recordtype>
+            <status>TESTING</status>
+            <allroles>T</allroles>
+        </scriptdeployment>
+    </scriptdeployments>
+</clientscript>
