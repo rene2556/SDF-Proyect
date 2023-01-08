@@ -250,7 +250,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
                 } else if (transaction == 10 && isExportacion){
                     filterView.push("AND", ["custrecord_lmry_setup_us_credit_exp", "is", "T"]);
                 } else {
-                    filterView.push("AND", transactionFieldById[transaction], "is", "T")
+                    filterView.push("AND", [transactionFieldById[transaction], "is", "T"]);
                 }
             }
 
