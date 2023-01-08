@@ -351,9 +351,9 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
                 text: "&nbsp"
             })
             //Tipo de entidad (1: vendor, 2: customer)
-            let entityTypeID = currentRCD.getValue('custrecord_lmry_us_entity_type');
+            let entityTypeID = recordObj.getValue('custrecord_lmry_us_entity_type');
             //ID del país
-            let countryID = currentRCD.getValue('custrecord_lmry_us_country');
+            let countryID = recordObj.getValue('custrecord_lmry_us_country');
             //Objeto de transacciones por país y tipo de entidad
             const jsonTransactionByCountry = {
                 "11": {

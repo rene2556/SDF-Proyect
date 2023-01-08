@@ -7,7 +7,8 @@
             <isdeployed>T</isdeployed>
             <loglevel>DEBUG</loglevel>
             <recordtype>[scriptid=customrecord_lmry_universal_setting_v2]</recordtype>
-            <status>TESTING</status>
+            <status>RELEASED</status>
+            <runasrole>ADMINISTRATOR</runasrole>
         </scriptdeployment>
     </scriptdeployments>
 </usereventscript>
