@@ -5,14 +5,14 @@
  * @Author rene@latamready.com
  * @NModuleScope public
  */
-define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
+define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
     /**
- * @param{error} error
- * @param{log} log
- * @param{runtime} runtime
- * @param{search} search
- * @param{serverWidget} serverWidget
- */
+     * @param{error} error
+     * @param{log} log
+     * @param{runtime} runtime
+     * @param{search} search
+     * @param{serverWidget} serverWidget
+     */
     (error, log, runtime, search, serverWidget, Library_Mail) => {
         /**
          * Defines the function definition that is executed before record is loaded.
@@ -47,7 +47,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                 let form = scriptContext.form;
                 let recordObj = scriptContext.newRecord;
 
-                if (runtime.excutionContext !== "CSVIMPORT" && ["create", "edit","copy", "view"].includes(actionType)){
+                if (runtime.excutionContext !== "CSVIMPORT" && ["create", "edit", "copy", "view"].includes(actionType)) {
                     form.removeButton("resetter");
                     FEAT_SUBSIDIARY = runtime.isFeatureInEffect({
                         feature: 'SUBSIDIARIES'
@@ -61,7 +61,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                     //Si viene de subsidiaria, ocultar campos de entidad (Entidad y el Entity Type)
                     let setupTaxsubsid = recordObj.getValue('custrecord_lmry_us_setuptax');
 
-                    if (setupTaxsubsid){
+                    if (setupTaxsubsid) {
                         form.getField('custrecord_lmry_us_entity').updateDisplayType({
                             displayType: serverWidget.FieldDisplayType.HIDDEN
                         });
@@ -71,13 +71,13 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                     }
 
 
-                    if (actionType == "create" || actionType == "edit" || actionType == "copy"){
+                    if (actionType == "create" || actionType == "edit" || actionType == "copy") {
                         let entity = recordObj.getValue("custrecord_lmry_us_entity");
                         let setupTax = recordObj.getValue("custrecord_lmry_us_setuptax");
 
-                        if (entity){
-                            if (actionType === "create"){
-                                if (FEAT_SUBSIDIARY === "T" || FEAT_SUBSIDIARY){
+                        if (entity) {
+                            if (actionType === "create") {
+                                if (FEAT_SUBSIDIARY === "T" || FEAT_SUBSIDIARY) {
                                     //crear campo custpage de subsidiaria
                                     let select_subsidiary = form.addField({
                                         id: 'custpage_subsidiary',
@@ -111,9 +111,11 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                                 });
 
                                 form.insertField({
-                                    field:select_transaction,
+                                    field: select_transaction,
                                     nextfield: 'custrecord_lmry_us_transaction'
                                 });
+                                let country = recordObj.getValu({fieldId: "custrecord_lmry_us_country"});
+                                fillTransactions(select_transaction, recordObj, country);
 
                                 //ocultar el campo real de las transacciones
                                 form.getField('custrecord_lmry_us_transaction').updateDisplayType({
@@ -121,44 +123,45 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                                 });
 
                             }
-                        } else if (setupTax){
-                            if (actionType === "create"){
+                        } else if (setupTax) {
+                            if (actionType === "create") {
                                 //Setear el campo subsidiary con al subsidiaria del setup tax subsidiary de donde viene
                                 let setupTax = recordObj.getValue("custrecord_lmry_us_setuptax");
-                                // 14/10/2022 : LatamReady - Automatic Set MX C0665
-                                if (setupTax) {
-                                    let searchSetupTax = search.lookupFields({
-                                        type: 'customrecord_lmry_setup_tax_subsidiary',
-                                        id: setupTax,
-                                        columns: ['custrecord_lmry_setuptax_subsidiary', 'custrecord_lmry_setuptax_sub_country']
-                                    });
-                                    //Subsidiaria Setup Tax
-                                    let stSubsidiaria = searchSetupTax.custrecord_lmry_setuptax_subsidiary[0].value;
 
-                                    //Country Setup Tax
-                                    let stCountry = searchSetupTax.custrecord_lmry_setuptax_sub_country[0].value;
+                                let searchSetupTax = search.lookupFields({
+                                    type: 'customrecord_lmry_setup_tax_subsidiary',
+                                    id: setupTax,
+                                    columns: ['custrecord_lmry_setuptax_subsidiary', 'custrecord_lmry_setuptax_sub_country']
+                                });
+                                //Subsidiaria Setup Tax
+                                let stSubsidiaria = searchSetupTax.custrecord_lmry_setuptax_subsidiary[0].value;
 
-                                    recordObj.setValue('custrecord_lmry_us_subsidiary', stSubsidiaria);
+                                //Country Setup Tax
+                                let stCountry = searchSetupTax.custrecord_lmry_setuptax_sub_country[0].value;
 
-                                    //crear el campo custpage para transacciones y llenar con todas las transacciones de ese pais
-                                    let transactionField = form.addField({
-                                        id: 'custpage_transaction',
-                                        type: serverWidget.FieldType.SELECT,
-                                        label: 'LATAM - TRANSACTION (SET)'
-                                    });
-                                    form.insertField({
-                                        field: transactionField,
-                                        nextfield: 'custrecord_lmry_us_transaction'
-                                    });
+                                recordObj.setValue('custrecord_lmry_us_subsidiary', stSubsidiaria);
 
-                                    fillTransactions(transactionField, recordObj, stCountry);
+                                recordObj.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
+                                    displayType: serverWidget.FieldDisplayType.DISABLED
+                                });
 
-                                    //ocultar el campo real de transaccion.
-                                    recordObj.getField('custrecord_lmry_us_transaction').updateDisplayType({
-                                        displayType: serverWidget.FieldDisplayType.HIDDEN
-                                    });
-                                }
+                                //crear el campo custpage para transacciones y llenar con todas las transacciones de ese pais
+                                let transactionField = form.addField({
+                                    id: 'custpage_transaction',
+                                    type: serverWidget.FieldType.SELECT,
+                                    label: 'LATAM - TRANSACTION (SET)'
+                                });
+                                form.insertField({
+                                    field: transactionField,
+                                    nextfield: 'custrecord_lmry_us_transaction'
+                                });
 
+                                fillTransactions(transactionField, recordObj, stCountry);
+
+                                //ocultar el campo real de transaccion.
+                                recordObj.getField('custrecord_lmry_us_transaction').updateDisplayType({
+                                    displayType: serverWidget.FieldDisplayType.HIDDEN
+                                });
                             }
 
                         } else {
@@ -172,9 +175,9 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
 
                         }
 
-                        if (actionType ==  "edit" || actionType === "copy"){
+                        if (actionType == "edit" || actionType === "copy") {
 
-                            if (entity){
+                            if (entity) {
                                 form.getField('custrecord_lmry_us_entity').updateDisplayType({
                                     displayType: serverWidget.FieldDisplayType.DISABLED
                                 });
@@ -192,7 +195,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                         }
                         //Oculta campos con country vacio y mostrar campos del pais y transaccion.
                         hideAndViewFields(recordObj, form);
-                    } else if (actionType === "view"){
+                    } else if (actionType === "view") {
                         hideAndViewFields(recordObj, form);
                     }
                 }
@@ -228,14 +231,13 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                 licenses = Library_Mail.getLicenses(subsidiaryID);
                 let arrayLegalDocumentCountry = ["11", "29", "30", "91", "157", "173", "174", "186", "231"];
 
-                if (context_type == 'CSVIMPORT'){
+                if (context_type == 'CSVIMPORT') {
 
                 }
 
 
-
             } catch (err) {
-                log.error('error BS',err);
+                log.error('error BS', err);
 
             }
         }
@@ -260,13 +262,13 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
             country = Number(country);
             let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
             transaction = Number(transaction);
-            if (country && transaction){
+            if (country && transaction) {
                 filterView.push(["custrecord_lmry_setup_us_country", "anyof", country]);
                 let isNotaDebito = false, isExportacion = false, isLibreConsigna = false;
                 //Invoice, CreditMemo
                 let document = recordObj.getValue('custrecord_lmry_document_type');
 
-                if ([7,10].includes(transaction) && countryDocuments.includes(country) && document){
+                if ([7, 10].includes(transaction) && countryDocuments.includes(country) && document) {
                     let recordDocument = search.lookupFields({
                         type: 'customrecord_lmry_tipo_doc',
                         id: document,
@@ -277,19 +279,19 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                     isLibreConsigna = recordDocument.custrecord_lmry_es_libre_consigna;
                 }
 
-                if (transaction == 7){
-                    if (isExportacion && isNotaDebito){
+                if (transaction == 7) {
+                    if (isExportacion && isNotaDebito) {
                         filterView.push("AND", ["custrecord_lmry_setup_us_notadeb_exp", "is", "T"]);
-                    } else if (isNotaDebito){
+                    } else if (isNotaDebito) {
                         filterView.push("AND", ["custrecord_lmry_setup_us_nota_deb", "is", "T"]);
-                    } else if (isExportacion){
+                    } else if (isExportacion) {
                         filterView.push("AND", ["custrecord_lmry_setup_us_inv_exp", "is", "T"]);
-                    } else if (isLibreConsigna){
+                    } else if (isLibreConsigna) {
                         filterView.push("AND", ["custrecord_lmry_setup_us_lib_consig", "is", "T"]);
-                    } else if (!isExportacion && !isNotaDebito && !isLibreConsigna){
+                    } else if (!isExportacion && !isNotaDebito && !isLibreConsigna) {
                         filterView.push("AND", ["custrecord_lmry_setup_us_invoice", "is", "T"])
                     }
-                } else if (transaction == 10 && isExportacion){
+                } else if (transaction == 10 && isExportacion) {
                     filterView.push("AND", ["custrecord_lmry_setup_us_credit_exp", "is", "T"]);
                 } else {
                     filterView.push("AND", [transactionFieldById[transaction], "is", "T"]);
@@ -300,7 +302,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                 ["isinactive", "is", "F"]
             ];
 
-            if (filterView.length){
+            if (filterView.length) {
                 filters.push("AND", [
                     ["custrecord_lmry_setup_us_country", "anyof", "@NONE@"], "OR",
                     filterView
@@ -315,14 +317,14 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                 columns: ["name", "custrecord_lmry_setup_us_country"]
             });
 
-            let results = viewSearch.run().getRange(0,1000);
+            let results = viewSearch.run().getRange(0, 1000);
             let hideFields = [], viewFields = [];
 
-            for (let i = 0; i < results.length; i++){
+            for (let i = 0; i < results.length; i++) {
                 let name = results[i].getValue("name") || "";
                 name = name.trim();
                 let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
-                if (country){
+                if (country) {
                     viewFields.push(name);
                 } else {
                     hideFields.push(name);
@@ -330,9 +332,9 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
             }
 
             hideFields.forEach((fieldName) => {
-                if (!viewFields.includes(fieldName)){
+                if (!viewFields.includes(fieldName)) {
                     let fieldObj = form.getField(fieldName);
-                    if (fieldObj){
+                    if (fieldObj) {
                         fieldObj.updateDisplayType({
                             displayType: serverWidget.FieldDisplayType.HIDDEN
                         })
@@ -352,18 +354,21 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
             let entityType = recordObj.getValue({fieldId: "custrecord_lmry_us_entity_type"});
 
             //Customer
-            if (entityType == 2 && (FEAT_MULTISUBCUSTOMER === "F" || FEAT_MULTISUBCUSTOMER)){
+            if (entityType == 2 && (FEAT_MULTISUBCUSTOMER === "F" || FEAT_MULTISUBCUSTOMER)) {
                 let entityResult = search.lookupFields({
                     type: "entity",
                     id: entity,
                     columns: ["subsidiary"]
                 });
 
-                subsidiaryField.addSelectOption({value: entityResult.subsidiary[0].value, text: entityResult.subsidiary[0].text});
+                subsidiaryField.addSelectOption({
+                    value: entityResult.subsidiary[0].value,
+                    text: entityResult.subsidiary[0].text
+                });
 
             } else {
                 let searchType = "vendorsubsidiaryrelationship";
-                if (entityType == 2){
+                if (entityType == 2) {
                     searchType = "customersubsidiaryrelationship";
                 }
 
@@ -377,14 +382,14 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                 });
 
                 let results = subsidiarySearch.run().getRange(0, 1000);
-                for (let i = 0; i < results.length; i++){
+                for (let i = 0; i < results.length; i++) {
                     let id = results[i].getValue("subsidiary");
-                    let name  = results[i].getText("subsidiary");
+                    let name = results[i].getText("subsidiary");
 
-                    subsidiaryField.addSelectOption({ value: id, text: name});
+                    subsidiaryField.addSelectOption({value: id, text: name});
                 }
             }
-          
+
         }
 
         const fillTransactions = (transactionField, recordObj, country) => {
@@ -394,8 +399,6 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
             })
             //Tipo de entidad (1: vendor, 2: customer)
             let entityTypeID = recordObj.getValue('custrecord_lmry_us_entity_type');
-            //ID del país
-            let countryID = recordObj.getValue('custrecord_lmry_us_country');
             //Objeto de transacciones por país y tipo de entidad
             const jsonTransactionByCountry = {
                 "11": {
@@ -412,7 +415,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                 },
                 "45": {
                     "1": [],
-                    "2": ["invoice", "creditmemo"]
+                    "2": ["invoice", "creditmemo"] //7, 10
                 },
                 "48": {
                     "1": [],
@@ -450,61 +453,43 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './Su
                     "1": [],
                     "2": ["invoice", "creditmemo"]
                 }
-            }
+            };
+
+            const transactionsById = {
+                "invoice": {name: "Invoice", id: 7},
+                "creditmemo": {name: "Credit Memo", id: 10},
+                "vendorbill": {name: "Bill", id: 17},
+                "vendorcredit": {name: "Bill Credit", id: 20},
+                "itemfulfillment": {name: "Item Fulfillment", id: 32},
+                "customerpayment": {name: "Payment", id: 9},
+                "customtransaction_lmry_payment_complemnt": {name: "Complemento de Pago", id: 39},
+                "cashsale": {name: "Cash Sale", id: 5},
+                "itemreceipt": {name: "Item Receipt", id: 16}
+            };
 
             //Arreglo de transacciones del tipo de entidad actual
             let transactions = [];
 
-            if (entityTypeID && (entityTypeID == "1" || entityTypeID == "2") && countryID){
+            if (entityTypeID && (entityTypeID == "1" || entityTypeID == "2") && country) {
                 transactions = jsonTransactionByCountry[country][entityTypeID]
             } else {
-                jsonTransactionByCountry[country]["1"].map((i) => {
-                    transactions.push(i);
-                });
-                jsonTransactionByCountry[country]["2"].map((i) => {
-                    transactions.push(i);
-                });
+                transactions = [...jsonTransactionByCountry[country]["1"], ...jsonTransactionByCountry[country]["2"]];
             }
 
-            //Filtros
-            let filters = [
-                ["isinactive","is","F"],
-                "AND",
-                ["custrecord_lmry_automatic_set_trans","is","T"]
-            ];
-
-            let transactionSearch = search.create({
-                type: 'customrecord_lmry_ns_transaction_type',
-                filters: filters,
-                columns: ['internalid', 'name', 'custrecord_lmry_ns_transaction_api']
-            });
-
-            let results = transactionSearch.run().getRange(0, 1000);
-
-            if (results){
-                if (transactionField){
-                    for (let i = 0; i < results.length; i++){
-                        if (transactions.indexOf(transactionSearch[i].getValue('custrecord_lmry_ns_transaction_api')) > -1){
-                            let id = results.getValue("internalid");
-                            let name = results.getValue("name");
-
-                            transactionField.addSelectOption({value: id, text: name});
-                        }
-                    }
-                }
+            for(let i = 0; i<transactions.length ; i++){
+                let { name, id } = transactionsById[transactions[i]];
+                transactionField.addSelectOption({ value : id, text : name });
             }
-
-
         }
 
         //AUTOMATIC FIELDS BY SUBSIDIARY (A/R) -MX
         const checkFeatureAutomaticSetGen = (recordObj, licenses) => {
-            if (context_type == 'CSVIMPORT'){
+            if (context_type == 'CSVIMPORT') {
                 let setupTaxSubsid = recordObj.getValue('custrecord_lmry_us_setuptax');
                 let country = recordObj.getValue('custrecord_lmry_us_country');
 
-                if (setupTaxSubsid){
-                    if (country != 157 || !Library_Mail.getAuthorization(975,licenses)){
+                if (setupTaxSubsid) {
+                    if (country != 157 || !Library_Mail.getAuthorization(975, licenses)) {
                         throw error.create({
                             name: 'ERROR_AUTHOMATIC_SET_SUBSIDIARY',
                             message: 'Disabled feature',

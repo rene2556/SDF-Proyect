@@ -96,7 +96,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                     recordObj.setValue('custrecord_lmry_us_subsidiary', subsidiaryID);
                     setupTax = getSetupTax(recordObj);
                     hideAndView(recordObj);
-
+                    fillTransactions(recordObj);
                 }
 
                 if (fieldName === 'custrecord_lmry_us_entity') {
