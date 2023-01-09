@@ -5,7 +5,7 @@
  * @Author rene@latamready.com
  * @NModuleScope public
  */
-define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
+define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget' , './SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
     /**
  * @param{error} error
  * @param{log} log
@@ -13,7 +13,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
  * @param{search} search
  * @param{serverWidget} serverWidget
  */
-    (error, log, runtime, search, serverWidget) => {
+    (error, log, runtime, search, serverWidget, Library_Mail) => {
         /**
          * Defines the function definition that is executed before record is loaded.
          * @param {Object} scriptContext
@@ -23,8 +23,12 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
          * @param {ServletRequest} scriptContext.request - HTTP request information sent from the browser for a client action only.
          * @since 2015.2
          */
+        let recordObj = '';
+        let context_type = '';
+        let licenses = [];
         let FEAT_SUBSIDIARY = false;
         let FEAT_MULTISUBCUSTOMER = false;
+
         const countryDocuments = [11, 29, 30, 91, 157, 173, 174, 186, 231];
         const transactionFieldById = {
             5: 'custrecord_lmry_setup_us_cashsale',
@@ -209,7 +213,31 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
          * @since 2015.2
          */
         const beforeSubmit = (scriptContext) => {
+            //Record Actual
+            recordObj = scriptContext.newRecord;
+            // LatamReady - Automatic Set MX C0665
+            checkFeatureAutomaticSetGen(recordObj, licenses);
+            try {
+                //ID de la Subsidiary
+                let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary');
+                //ID de la Transacción
+                let transactionID = recordObj.getValue('custrecord_lmry_us_transaction');
+                //ID del país
+                let countryID = recordObj.getValue('custrecord_lmry_us_country');
+                //Obtener licencias
+                licenses = Library_Mail.getLicenses(subsidiaryID);
+                let arrayLegalDocumentCountry = ["11", "29", "30", "91", "157", "173", "174", "186", "231"];
 
+                if (context_type == 'CSVIMPORT'){
+
+                }
+
+
+
+            } catch (err) {
+                log.error('error BS',err);
+
+            }
         }
 
         /**
@@ -469,6 +497,24 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget'],
 
         }
 
+        //AUTOMATIC FIELDS BY SUBSIDIARY (A/R) -MX
+        const checkFeatureAutomaticSetGen = (recordObj, licenses) => {
+            if (context_type == 'CSVIMPORT'){
+                let setupTaxSubsid = recordObj.getValue('custrecord_lmry_us_setuptax');
+                let country = recordObj.getValue('custrecord_lmry_us_country');
+
+                if (setupTaxSubsid){
+                    if (country != 157 || !Library_Mail.getAuthorization(975,licenses)){
+                        throw error.create({
+                            name: 'ERROR_AUTHOMATIC_SET_SUBSIDIARY',
+                            message: 'Disabled feature',
+                            notifyOff: true
+                        })
+                    }
+                }
+            }
+
+        }
         return {
             beforeLoad: beforeLoad,
             beforeSubmit: beforeSubmit,
