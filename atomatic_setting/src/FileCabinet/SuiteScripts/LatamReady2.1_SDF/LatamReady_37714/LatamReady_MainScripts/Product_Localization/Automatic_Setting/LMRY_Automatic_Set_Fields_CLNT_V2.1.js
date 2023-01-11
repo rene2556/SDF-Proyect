@@ -5,14 +5,14 @@
  * @Author rene@latamready.com
  * @NModuleScope public
  */
-define(['N/log', 'N/record', 'N/runtime', 'N/search'],
+define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
     /**
      * @param{log} log
      * @param{record} record
      * @param{runtime} runtime
      * @param{search} search
      */
-    function (log, record, runtime, search) {
+    function (log, record, runtime, search, Library_Mail) {
 
         /**
          * Function to be executed after page is initialized.
@@ -27,6 +27,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
         let actionType = "";
         let fields = {};
         let setupTax = null;
+        let licenses = [];
         let FEAT_SUBSIDIARY = false;
 
         const countryDocuments = [11, 29, 30, 91, 157, 173, 174, 186, 231];
@@ -45,13 +46,16 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
 
         function pageInit(scriptContext) {
             actionType = scriptContext.mode;
-            let recordObj = scriptContext.currentRecord;
-            FEAT_SUBSIDIARY = runtime.isFeatureInEffect({feature: 'SUBSIDIARIES'});
-            fields = getViewFields();
-            console.log(fields)
-            if (actionType === "create") {
-                setupTax = getSetupTax(recordObj);
-                console.log(setupTax);
+            if(['create','edit','copy'].includes(actionType)){
+                let recordObj = scriptContext.currentRecord;
+                FEAT_SUBSIDIARY = runtime.isFeatureInEffect({feature: 'SUBSIDIARIES'});
+                fields = getViewFields();
+                hideAndView(recordObj);
+                console.log(fields)
+                if (actionType === "create") {
+                    setupTax = getSetupTax(recordObj);
+                    console.log(setupTax);
+                }
             }
 
         }
@@ -78,10 +82,21 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                 let fieldName = scriptContext.fieldId;
                 //ID de la transacción (Custpage)
 
+                if(fieldName === 'custrecord_lmry_us_country'){
+                    //que se limpie la transaction
+                    recordObj.setValue({
+                        fieldId: 'custrecord_lmry_us_transaction',
+                        value: ''
+                    });
+                    hideAndView(recordObj);
+                    fillTransactions(recordObj);
+                }
+
                 if (fieldName === 'custpage_transaction') {
 
                     //ID de la transacción
                     let transactionID = recordObj.getValue('custpage_transaction') || "";
+                    console.log("transactionID", transactionID);
                     recordObj.setValue({
                         fieldId: 'custrecord_lmry_us_transaction',
                         value: transactionID
@@ -95,8 +110,6 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                     let subsidiaryID = recordObj.getValue('custpage_subsidiary') || "";
                     recordObj.setValue('custrecord_lmry_us_subsidiary', subsidiaryID);
                     setupTax = getSetupTax(recordObj);
-                    hideAndView(recordObj);
-                    fillTransactions(recordObj);
                 }
 
                 if (fieldName === 'custrecord_lmry_us_entity') {
@@ -214,6 +227,42 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
          * @since 2015.2
          */
         function saveRecord(scriptContext) {
+            try {
+                //Record Actual
+                recordObj = scriptContext.currentRecord;
+                //ID del país
+                let country = recordObj.getValue('custrecord_lmry_us_country');
+                //ID de la subsidiaria
+                let subsidiary = recordObj.getValue('custrecord_lmry_us_subsidiary');
+                //ID de la subsidiaria (Setup Tax Subsidiary)
+                let setupTax = recordObj.getValue('custrecord_lmry_us_setuptax');
+
+                if (setupTax){
+                    licenses = Library_Mail.getLicenses(subsidiary);
+                    if (country != 157 || !Library_Mail.getAuthorization(915, licenses)){
+                        alert('AUTOMATIC FIELDS BY SUBSIDIARY (A/R) feature is disabled');
+                        return false;
+                    }
+                }
+
+                if (country == 30){
+                    let check_Service = recordObj.getValue('custrecord_set_service');
+                    let check_Inventory = recordObj.getValue('custrecord_set_inventory');
+                    let check_Bonus = recordObj.getValue('custrecord_set_bonus');
+                    let check_Hibrid = recordObj.getValue('custrecord_set_hibrid');
+
+                    //Debe escogerse obligatoriamente si invoice será de inventario o servicio
+                    if (!check_Service && !check_Inventory && !check_Bonus && !check_Hibrid){
+                        alert('Must select if it is a service or inventory or bonus or hibrid');
+                        return false;
+                    }
+                }
+
+
+                
+            } catch (err) {
+                log.error("[saveRecord]", err);
+            }
 
         }
 
@@ -331,6 +380,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
         const hideAndView = (recordObj) => {
             //ocultar
             let hideFields = fields["none"];
+            console.log("fields", fields);
 
             hideFields.forEach((fieldName) => {
                 let fieldObj = recordObj.getField(fieldName);
@@ -340,6 +390,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
             });
 
             let country = recordObj.getValue('custrecord_lmry_us_country') || "";
+            console.log("Country", country);
             country = Number(country);
             let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
             transaction = Number(transaction);
@@ -364,7 +415,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                     if (transaction == 7) {
                         if (isExportacion && isNotaDebito) {
                             viewFields = fields[country].filter((f) => {
-                                return f.type.includes("notaDebitoExportacion");
+                                return f.types.includes("notaDebitoExportacion");
                             });
                         } else if (isNotaDebito) {
                             viewFields = fields[country].filter((f) => {
@@ -394,12 +445,108 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'],
                     }
                 }
 
-                viewFields.forEach((fieldName) => {
-                    let fieldObj = recordObj.getField(fieldName);
+                viewFields.forEach((obj) => {
+                    let fieldObj = recordObj.getField(obj.name);
                     if (fieldObj) {
                         fieldObj.isDisplay = true;
                     }
                 });
+            }
+
+        }
+
+        const fillTransactions = (recordObj) => {
+            let entityTypeID = recordObj.getValue('custrecord_lmry_us_entity_type');
+            let countryID = recordObj.getValue('custrecord_lmry_us_country');
+            let transactionField = recordObj.getField({fieldId: 'custpage_transaction'});
+            console.log("entityTypeID", entityTypeID);
+            console.log("countryID", countryID);
+            console.log("transactionField", transactionField);
+
+            //Objeto de transacciones por país y tipo de entidad
+            const jsonTransactionByCountry = {
+                "11": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "29": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "30": {
+                    "1": ["vendorbill", "vendorcredit", "itemreceipt"],
+                    "2": ["invoice", "creditmemo", "itemfulfillment"]
+                },
+                "45": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"] //7, 10
+                },
+                "48": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "49": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "63": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "91": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "157": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo", "itemfulfillment", "customerpayment", "customtransaction_lmry_payment_complemnt"]
+                },
+                "173": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "174": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo", "itemfulfillment", "cashsale"]
+                },
+                "186": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                },
+                "231": {
+                    "1": [],
+                    "2": ["invoice", "creditmemo"]
+                }
+            };
+
+            const transactionsById = {
+                "invoice": {name: "Invoice", id: 7},
+                "creditmemo": {name: "Credit Memo", id: 10},
+                "vendorbill": {name: "Bill", id: 17},
+                "vendorcredit": {name: "Bill Credit", id: 20},
+                "itemfulfillment": {name: "Item Fulfillment", id: 32},
+                "customerpayment": {name: "Payment", id: 9},
+                "customtransaction_lmry_payment_complemnt": {name: "Complemento de Pago", id: 39},
+                "cashsale": {name: "Cash Sale", id: 5},
+                "itemreceipt": {name: "Item Receipt", id: 16}
+            };
+
+            let transactions = [];
+            if (countryID){
+                if (entityTypeID && (entityTypeID == "1" || entityTypeID == "2") && countryID){
+                    transactions = jsonTransactionByCountry[countryID][entityTypeID];
+                } else {
+                    transactions = [...jsonTransactionByCountry[countryID]['1'],...jsonTransactionByCountry[countryID]['2']];
+                }
+
+                transactionField.removeSelectOption({ value : null});
+                transactionField.insertSelectOption({ value : '', text : "&nbsp" });
+                for(let i = 0; i < transactions.length ; i++){
+                    let {name, id} = transactionsById[transactions[i]];
+                    transactionField.insertSelectOption({ value : id, text : name });
+                }
+            } else {
+                transactionField.removeSelectOption({ value : null});
             }
 
         }

@@ -5,7 +5,7 @@
  * @Author rene@latamready.com
  * @NModuleScope public
  */
-define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
+define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
     /**
      * @param{error} error
      * @param{log} log
@@ -114,7 +114,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './Sui
                                     field: select_transaction,
                                     nextfield: 'custrecord_lmry_us_transaction'
                                 });
-                                let country = recordObj.getValu({fieldId: "custrecord_lmry_us_country"});
+                                let country = recordObj.getValue({fieldId: "custrecord_lmry_us_country"});
                                 fillTransactions(select_transaction, recordObj, country);
 
                                 //ocultar el campo real de las transacciones
@@ -141,7 +141,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './Sui
 
                                 recordObj.setValue('custrecord_lmry_us_subsidiary', stSubsidiaria);
 
-                                recordObj.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
+                                form.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
                                     displayType: serverWidget.FieldDisplayType.DISABLED
                                 });
 
@@ -159,17 +159,17 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './Sui
                                 fillTransactions(transactionField, recordObj, stCountry);
 
                                 //ocultar el campo real de transaccion.
-                                recordObj.getField('custrecord_lmry_us_transaction').updateDisplayType({
+                                form.getField('custrecord_lmry_us_transaction').updateDisplayType({
                                     displayType: serverWidget.FieldDisplayType.HIDDEN
                                 });
                             }
 
                         } else {
                             //Deshabilitar campos de la subsidiaria,transacciones
-                            recordObj.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
+                            form.getField('custrecord_lmry_us_subsidiary').updateDisplayType({
                                 displayType: serverWidget.FieldDisplayType.DISABLED
                             });
-                            recordObj.getField('custrecord_lmry_us_transaction').updateDisplayType({
+                            form.getField('custrecord_lmry_us_transaction').updateDisplayType({
                                 displayType: serverWidget.FieldDisplayType.DISABLED
                             });
 
@@ -194,7 +194,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './Sui
 
                         }
                         //Oculta campos con country vacio y mostrar campos del pais y transaccion.
-                        hideAndViewFields(recordObj, form);
+                        //hideAndViewFields(recordObj, form);
                     } else if (actionType === "view") {
                         hideAndViewFields(recordObj, form);
                     }
@@ -336,7 +336,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './Sui
                     let fieldObj = form.getField(fieldName);
                     if (fieldObj) {
                         fieldObj.updateDisplayType({
-                            displayType: serverWidget.FieldDisplayType.HIDDEN
+                            displayType: serverWidget.FieldDisplayType.NODISPLAY
                         })
                     }
                 }
