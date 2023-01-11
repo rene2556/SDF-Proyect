@@ -221,37 +221,17 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             // LatamReady - Automatic Set MX C0665
             checkFeatureAutomaticSetGen(recordObj, licenses);
             try {
-                //ID de la Subsidiary
-                let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary');
-                //ID de la Transacción
-                let transactionID = recordObj.getValue('custrecord_lmry_us_transaction');
-                //ID del país
-                let countryID = recordObj.getValue('custrecord_lmry_us_country');
-                //Obtener licencias
-                licenses = Library_Mail.getLicenses(subsidiaryID);
-                let arrayLegalDocumentCountry = ["11", "29", "30", "91", "157", "173", "174", "186", "231"];
 
                 if (context_type == 'CSVIMPORT') {
-
+                        setArDateFields(recordObj);
                 }
 
+                setDataJson(recordObj);
 
             } catch (err) {
                 log.error('error BS', err);
 
             }
-        }
-
-        /**
-         * Defines the function definition that is executed after record is submitted.
-         * @param {Object} scriptContext
-         * @param {Record} scriptContext.newRecord - New record
-         * @param {Record} scriptContext.oldRecord - Old record
-         * @param {string} scriptContext.type - Trigger type; use values from the context.UserEventType enum
-         * @since 2015.2
-         */
-        const afterSubmit = (scriptContext) => {
-
         }
 
         //Oculta campos con country vacio y mostrar campos del pais y transaccion.
@@ -314,7 +294,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let viewSearch = search.create({
                 type: "customrecord_lmry_setup_universal_set_v2",
                 filters: filters,
-                columns: ["name", "custrecord_lmry_setup_us_country"]
+                columns: ["name", "custrecord_lmry_setup_us_country","custrecord_lmry_setup_us_record.scriptid"]
             });
 
             let results = viewSearch.run().getRange(0, 1000);
@@ -324,19 +304,22 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                 let name = results[i].getValue("name") || "";
                 name = name.trim();
                 let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
+                let recordId = results[i].getValue({ name : "scriptid", join : "custrecord_lmry_setup_us_record "});
                 if (country) {
-                    viewFields.push(name);
+                    viewFields.push({ name : name, recordId: recordId });
                 } else {
                     hideFields.push(name);
                 }
             }
 
+            let fields = getFields();
+
             hideFields.forEach((fieldName) => {
-                if (!viewFields.includes(fieldName)) {
+                if (!viewFields.find((v)=>v.name === fieldName)) {
                     let fieldObj = form.getField(fieldName);
                     if (fieldObj) {
                         fieldObj.updateDisplayType({
-                            displayType: serverWidget.FieldDisplayType.NODISPLAY
+                            displayType: serverWidget.FieldDisplayType.HIDDEN
                         })
                     }
                 }
@@ -501,9 +484,8 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
 
         }
         return {
-            beforeLoad: beforeLoad,
-            beforeSubmit: beforeSubmit,
-            afterSubmit: afterSubmit
+            beforeLoad,
+            beforeSubmit
         }
 
     });
