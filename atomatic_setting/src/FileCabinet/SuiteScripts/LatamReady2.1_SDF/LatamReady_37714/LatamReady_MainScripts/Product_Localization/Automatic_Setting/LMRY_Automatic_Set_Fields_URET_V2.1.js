@@ -437,7 +437,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
         }
 
         const setArDateFields = (recordObj, countryID) => {
-            if (countryID){
+            if (countryID == 11){
                 let arIncConcepts = recordObj.getValue('custrecord_set_ar_inc_concepts');
                 //Solo si el campo LATAM - AR INCLUDED CONCEPTS es Servícios o Productos y Servícios
                 if (arIncConcepts == 2 || arIncConcepts == 3){
