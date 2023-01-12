@@ -221,12 +221,20 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             // LatamReady - Automatic Set MX C0665
             checkFeatureAutomaticSetGen(recordObj, licenses);
             try {
+                //ID de la Subsidiary
+                let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary');
+                //ID de la Transacción
+                let transactionID = recordObj.getValue('custrecord_lmry_us_transaction');
+                //ID del país
+                let countryID = recordObj.getValue('custrecord_lmry_us_country');
+                //Obtener licencias
+                licenses = Library_Mail.getLicenses(subsidiaryID);
+                let arrayLegalDocumentCountry = ["11", "29", "30", "91", "157", "173", "174", "186", "231"];
 
                 if (context_type == 'CSVIMPORT') {
-                        setArDateFields(recordObj);
+                    setArDateFields(recordObj, countryID);
                 }
-
-                setDataJson(recordObj);
+                setDataJson();
 
             } catch (err) {
                 log.error('error BS', err);
@@ -237,94 +245,38 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
         //Oculta campos con country vacio y mostrar campos del pais y transaccion.
         const hideAndViewFields = (recordObj, form) => {
             let filterView = [];
-
             let country = recordObj.getValue('custrecord_lmry_us_country') || "";
             country = Number(country);
             let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
             transaction = Number(transaction);
             if (country && transaction) {
-                filterView.push(["custrecord_lmry_setup_us_country", "anyof", country]);
-                let isNotaDebito = false, isExportacion = false, isLibreConsigna = false;
-                //Invoice, CreditMemo
-                let document = recordObj.getValue('custrecord_lmry_document_type');
+                let results = getfieldsHideAndView(recordObj);
+                //Aqui elimnine
+                let hideFields = [], viewFields = [];
 
-                if ([7, 10].includes(transaction) && countryDocuments.includes(country) && document) {
-                    let recordDocument = search.lookupFields({
-                        type: 'customrecord_lmry_tipo_doc',
-                        id: document,
-                        columns: ['custrecord_lmry_es_nota_de_debito', 'custrecord_lmry_es_exportacion', 'custrecord_lmry_es_libre_consigna']
-                    });
-                    isNotaDebito = recordDocument.custrecord_lmry_es_nota_de_debito;
-                    isExportacion = recordDocument.custrecord_lmry_es_exportacion;
-                    isLibreConsigna = recordDocument.custrecord_lmry_es_libre_consigna;
-                }
-
-                if (transaction == 7) {
-                    if (isExportacion && isNotaDebito) {
-                        filterView.push("AND", ["custrecord_lmry_setup_us_notadeb_exp", "is", "T"]);
-                    } else if (isNotaDebito) {
-                        filterView.push("AND", ["custrecord_lmry_setup_us_nota_deb", "is", "T"]);
-                    } else if (isExportacion) {
-                        filterView.push("AND", ["custrecord_lmry_setup_us_inv_exp", "is", "T"]);
-                    } else if (isLibreConsigna) {
-                        filterView.push("AND", ["custrecord_lmry_setup_us_lib_consig", "is", "T"]);
-                    } else if (!isExportacion && !isNotaDebito && !isLibreConsigna) {
-                        filterView.push("AND", ["custrecord_lmry_setup_us_invoice", "is", "T"])
-                    }
-                } else if (transaction == 10 && isExportacion) {
-                    filterView.push("AND", ["custrecord_lmry_setup_us_credit_exp", "is", "T"]);
-                } else {
-                    filterView.push("AND", [transactionFieldById[transaction], "is", "T"]);
-                }
-            }
-
-            let filters = [
-                ["isinactive", "is", "F"]
-            ];
-
-            if (filterView.length) {
-                filters.push("AND", [
-                    ["custrecord_lmry_setup_us_country", "anyof", "@NONE@"], "OR",
-                    filterView
-                ]);
-            } else {
-                filters.push("AND", ["custrecord_lmry_setup_us_country", "anyof", "@NONE@"]);
-            }
-
-            let viewSearch = search.create({
-                type: "customrecord_lmry_setup_universal_set_v2",
-                filters: filters,
-                columns: ["name", "custrecord_lmry_setup_us_country","custrecord_lmry_setup_us_record.scriptid"]
-            });
-
-            let results = viewSearch.run().getRange(0, 1000);
-            let hideFields = [], viewFields = [];
-
-            for (let i = 0; i < results.length; i++) {
-                let name = results[i].getValue("name") || "";
-                name = name.trim();
-                let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
-                let recordId = results[i].getValue({ name : "scriptid", join : "custrecord_lmry_setup_us_record "});
-                if (country) {
-                    viewFields.push({ name : name, recordId: recordId });
-                } else {
-                    hideFields.push(name);
-                }
-            }
-
-            let fields = getFields();
-
-            hideFields.forEach((fieldName) => {
-                if (!viewFields.find((v)=>v.name === fieldName)) {
-                    let fieldObj = form.getField(fieldName);
-                    if (fieldObj) {
-                        fieldObj.updateDisplayType({
-                            displayType: serverWidget.FieldDisplayType.HIDDEN
-                        })
+                for (let i = 0; i < results.length; i++) {
+                    let name = results[i].getValue("name") || "";
+                    name = name.trim();
+                    let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
+                    if (country) {
+                        viewFields.push(name);
+                    } else {
+                        hideFields.push(name);
                     }
                 }
-            });
 
+                hideFields.forEach((fieldName) => {
+                    if (!viewFields.includes(fieldName)) {
+                        let fieldObj = form.getField(fieldName);
+                        if (fieldObj) {
+                            fieldObj.updateDisplayType({
+                                displayType: serverWidget.FieldDisplayType.NODISPLAY
+                            })
+                        }
+                    }
+                });
+
+            }
         }
 
         const fillSubsidiaries = (subsidiaryField, recordObj) => {
@@ -483,9 +435,150 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             }
 
         }
+
+        const setArDateFields = (recordObj, countryID) => {
+            if (countryID){
+                let arIncConcepts = recordObj.getValue('custrecord_set_ar_inc_concepts');
+                //Solo si el campo LATAM - AR INCLUDED CONCEPTS es Servícios o Productos y Servícios
+                if (arIncConcepts == 2 || arIncConcepts == 3){
+                    let date = new Date();
+                    let firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+                    let lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+                    recordObj.setValue('custrecord_set_ar_servdate_initial', firstDay);
+                    recordObj.getValue('custrecord_set_ar_servdate_end', lastDay);
+                } else {
+                    recordObj.setValue('custrecord_set_ar_servdate_initial', '');
+                    recordObj.getValue('custrecord_set_ar_servdate_end', '');
+                }
+            }
+        }
+
+        const setDataJson = (recordObj) => {
+            let newNameField = '';
+            let fieldDataRecord = [];
+            let recordId = '';
+            //ID de la transacción
+            let transaction = recordObj.getValue('custrecord_lmry_us_transaction');
+            let results = getfieldsHideAndView();
+            if (results){
+                for (let i = 0; i < results.length; i++){
+                    if (!results[i].getValue('custrecord_lmry_setup_us_record_key')){
+                        //Nombre del campo
+                        let nameField = results[i].getValue('name');
+                        //Valor del campo
+                        let valueField = recordObj.getValue(nameField);
+                        if (nameField.startsWith('custrecord_set')){
+                            //Reemplazar inicial del campo
+                            newNameField = nameField.replace('custrecord_set', 'custrecord_lmry');
+                            //Objeto de transaction Fields
+                            let jsonDataRecord = {
+                                field: newNameField,
+                                value: valueField
+                            };
+                            //Agregando valores al arreglo Transaction Fields
+                            fieldDataRecord.push(jsonDataRecord);
+                        } else {
+                            if (transaction == '39'){
+                                if(nameField = 'custrecord_lmry_document_type'){
+                                    newNameField = 'custpage_document_type';
+
+                                } else if (nameField == 'custrecord_lmry_serie_doc_cxc'){
+                                    newNameField = 'custpage_serie_doc';
+                                } else {
+                                    newNameField = nameField.replace('custrecord', 'custbody');
+                                }
+                                //Objeto de Body Fields
+                                let jsonData = {
+                                    field: newNameField,
+                                    value: valueField
+                                };
+                                //Agregando valores al arreglo Body Fields
+                                fieldData.push(jsonData);
+                            }
+                        }
+                    } else {
+                        recordId = results[i].getValue('custrecord_lmry_setup_us_record');
+                        if (recordId){
+                            let recordName
+                        }
+                    }
+                }
+            }
+        }
+
+        const getfieldsHideAndView = (recordObj, filter) => {
+
+            log.debug("Entro ala busqueda new");
+            let filterView = [];
+            let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
+            transaction = Number(transaction);
+            let country = recordObj.getValue('custrecord_lmry_us_country') || "";
+            country = Number(country);
+            filterView.push(["custrecord_lmry_setup_us_country", "anyof", country]);
+            if (filter){
+
+            }
+            let isNotaDebito = false, isExportacion = false, isLibreConsigna = false;
+            //Invoice, CreditMemo
+            let document = recordObj.getValue('custrecord_lmry_document_type');
+
+            if ([7, 10].includes(transaction) && countryDocuments.includes(country) && document) {
+                let recordDocument = search.lookupFields({
+                    type: 'customrecord_lmry_tipo_doc',
+                    id: document,
+                    columns: ['custrecord_lmry_es_nota_de_debito', 'custrecord_lmry_es_exportacion', 'custrecord_lmry_es_libre_consigna']
+                });
+                isNotaDebito = recordDocument.custrecord_lmry_es_nota_de_debito;
+                isExportacion = recordDocument.custrecord_lmry_es_exportacion;
+                isLibreConsigna = recordDocument.custrecord_lmry_es_libre_consigna;
+            }
+
+            if (transaction == 7) {
+                if (isExportacion && isNotaDebito) {
+                    filterView.push("AND", ["custrecord_lmry_setup_us_notadeb_exp", "is", "T"]);
+                } else if (isNotaDebito) {
+                    filterView.push("AND", ["custrecord_lmry_setup_us_nota_deb", "is", "T"]);
+                } else if (isExportacion) {
+                    filterView.push("AND", ["custrecord_lmry_setup_us_inv_exp", "is", "T"]);
+                } else if (isLibreConsigna) {
+                    filterView.push("AND", ["custrecord_lmry_setup_us_lib_consig", "is", "T"]);
+                } else if (!isExportacion && !isNotaDebito && !isLibreConsigna) {
+                    filterView.push("AND", ["custrecord_lmry_setup_us_invoice", "is", "T"])
+                }
+            } else if (transaction == 10 && isExportacion) {
+                filterView.push("AND", ["custrecord_lmry_setup_us_credit_exp", "is", "T"]);
+            } else {
+                filterView.push("AND", [transactionFieldById[transaction], "is", "T"]);
+            }
+
+            let filters = [
+                ["isinactive", "is", "F"]
+            ];
+
+            if (filterView.length) {
+                filters.push("AND", [
+                    ["custrecord_lmry_setup_us_country", "anyof", "@NONE@"], "OR",
+                    filterView
+                ]);
+            } else {
+                filters.push("AND", ["custrecord_lmry_setup_us_country", "anyof", "@NONE@"]);
+            }
+
+            let viewSearch = search.create({
+                type: "customrecord_lmry_setup_universal_set_v2",
+                filters: filters,
+                columns: ["name", "custrecord_lmry_setup_us_country", "custrecord_lmry_setup_us_record_key", "custrecord_lmry_setup_us_record.scriptid"]
+            });
+
+            let results = viewSearch.run().getRange(0, 1000);
+
+            return results;
+
+        }
         return {
-            beforeLoad,
-            beforeSubmit
+            beforeLoad: beforeLoad,
+            beforeSubmit: beforeSubmit
         }
 
     });
