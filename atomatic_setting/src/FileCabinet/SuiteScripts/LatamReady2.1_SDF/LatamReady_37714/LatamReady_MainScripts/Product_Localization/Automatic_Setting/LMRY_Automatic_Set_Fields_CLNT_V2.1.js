@@ -341,7 +341,6 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                 let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
                 let isRecordKey = results[i].getValue("custrecord_lmry_setup_us_record_key") || false;
                 isRecordKey = (isRecordKey === "T" || isRecordKey === true);
-
                 if (!country) {
                     fields["none"].push(name);
                 } else {

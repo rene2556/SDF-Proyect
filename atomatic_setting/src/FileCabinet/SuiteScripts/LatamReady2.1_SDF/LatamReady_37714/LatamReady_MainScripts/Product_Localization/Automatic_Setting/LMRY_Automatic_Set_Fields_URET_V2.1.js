@@ -23,6 +23,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
          * @param {ServletRequest} scriptContext.request - HTTP request information sent from the browser for a client action only.
          * @since 2015.2
          */
+
         let licenses = [];
         let FEAT_SUBSIDIARY = false;
         let FEAT_MULTISUBCUSTOMER = false;
@@ -217,13 +218,14 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             //Record Actual
             let recordObj = scriptContext.newRecord;
             let eventType = scriptContext.type;
+            // LatamReady - Automatic Set MX C0665
             if (["create", "edit", "copy"].includes(eventType)) {
-                // LatamReady - Automatic Set MX C0665
                 if (runtime.excutionContext === "CSVIMPORT") {
                     let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary');
                     let licenses = Library_Mail.getLicenses(subsidiaryID);
                     checkFeatureAutomaticSetGen(recordObj, licenses);
                 }
+
                 try {
                     if (runtime.excutionContext == 'CSVIMPORT') {
                         setArDateFields(recordObj);
@@ -231,7 +233,8 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                     setDataJson(recordObj);
 
                 } catch (err) {
-                    log.error('error BS', err);
+                    log.error('[beforeSubmit]', err);
+
                 }
             }
         }
@@ -240,8 +243,6 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
         const hideAndViewFields = (recordObj, form) => {
 
             let jsonResult = getfieldsHideAndView(recordObj);
-            //Aqui elimnine
-
             let hideFields = jsonResult.hideFields;
             let viewFields = jsonResult.viewFields;
             viewFields = viewFields.filter((v)=>!v.isRecordKey);
@@ -249,13 +250,14 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let setupTax = getSetupTax(recordObj);
 
             hideFields.forEach((fieldName) => {
-                if (!viewFields.find((v)=>v.name === fieldName) && !validateARfields(recordObj, fieldName,setupTax)) {
+                if (!viewFields.find((v)=>v.name === fieldName) && !validateARfields(recordObj, fieldName, setupTax)) {
                     let fieldObj = form.getField(fieldName);
-                    if (fieldObj) {
+                    if(fieldObj){
                         fieldObj.updateDisplayType({
                             displayType: serverWidget.FieldDisplayType.HIDDEN
                         })
                     }
+
                 }
             });
         }
@@ -264,7 +266,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let entity = recordObj.getValue({fieldId: "custrecord_lmry_us_entity"});
             let subsidiary = recordObj.getValue({fieldId: "custpage_subsidiary"});
             let setupTax = recordObj.getValue({fieldId: "custrecord_lmry_us_setuptax"});
-            //Filtros
+            //filtros
             if ((entity && subsidiary) || setupTax) {
                 let filters = [
                     ["isinactive", "is", "F"]
@@ -274,19 +276,19 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                     if (FEAT_SUBSIDIARY) {
                         filters.push("AND", ["custrecord_lmry_setuptax_subsidiary", "anyof", subsidiary]);
                     }
-                }else if(setupTax){
-                    filters.push("AND",["internalid","anyof", setupTax]);
+
+                } else if(setupTax){
+                    filters.push("AND", ["internalid", "anyof", setupTax]);
                 }
 
-                //Búsqueda Setup Tax Subsidiary
+                //Busqueda Setup Tax Subsidiary
                 let setupTaxSearch = search.create({
                     type: "customrecord_lmry_setup_tax_subsidiary",
                     filters: filters,
                     columns: ["custrecord_lmry_setuptax_ar_doc_type_val"]
                 })
-
                 let result = setupTaxSearch.run().getRange(0, 1)
-                if (result && result.length) {
+                if (result && result.length){
                     return {
                         "arDocumentType": result[0].getValue("custrecord_lmry_setuptax_ar_doc_type_val") || ""
                     }
@@ -301,7 +303,6 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let country = recordObj.getValue("custrecord_lmry_us_country");
             return (country == 11 && ['custrecord_lmry_document_type_validate', 'custrecord_lmry_serie_doc_cxc_validate'].includes(fieldName) && setupTax && setupTax.arDocumentType == document);
         }
-
 
         const fillSubsidiaries = (subsidiaryField, recordObj) => {
             subsidiaryField.addSelectOption({
@@ -443,18 +444,19 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
 
         //AUTOMATIC FIELDS BY SUBSIDIARY (A/R) -MX
         const checkFeatureAutomaticSetGen = (recordObj, licenses) => {
-                let setupTaxSubsid = recordObj.getValue('custrecord_lmry_us_setuptax');
-                let country = recordObj.getValue('custrecord_lmry_us_country');
+            let setupTaxSubsid = recordObj.getValue('custrecord_lmry_us_setuptax');
+            let country = recordObj.getValue('custrecord_lmry_us_country');
 
-                if (setupTaxSubsid) {
-                    if (country != 157 || !Library_Mail.getAuthorization(975, licenses)) {
-                        throw error.create({
-                            name: 'ERROR_AUTHOMATIC_SET_SUBSIDIARY',
-                            message: 'Disabled feature',
-                            notifyOff: true
-                        })
-                    }
+            if (setupTaxSubsid) {
+                if (country != 157 || !Library_Mail.getAuthorization(975, licenses)) {
+                    throw error.create({
+                        name: 'ERROR_AUTHOMATIC_SET_SUBSIDIARY',
+                        message: 'Disabled feature',
+                        notifyOff: true
+                    })
                 }
+            }
+
         }
 
         const setArDateFields = (recordObj) => {
@@ -479,83 +481,86 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
         const setDataJson = (recordObj) => {
             let fieldData = [];
             let fieldDataRecord = [];
-            
+
+            //ID de la transacción
             let jsonResult = getfieldsHideAndView();
             let viewFields = jsonResult.viewFields;
             if (viewFields.length){
                 let recordName = "";
                 let recordId = "";
+
                 viewFields.forEach((fieldObj)=>{
-                    if (!fieldObj.isRecordKey) {
+                    if (!fieldObj.isRecordKey){
                         //Nombre del campo
                         let nameField = fieldObj.name;
                         //Valor del campo
                         let valueField = recordObj.getValue(nameField);
-                        if (nameField.startsWith('custrecord_set')) {
+                        if (nameField.startsWith('custrecord_set')){
                             //Reemplazar inicial del campo
-                            let new_name_field = nameField.replace('custrecord_set', 'custrecord_lmry');
-                            //Objeto de Transaction Fields
+                            let newNameField = nameField.replace('custrecord_set', 'custrecord_lmry');
+                            //Objeto de transaction Fields
                             let jsonDataRecord = {
-                                field: new_name_field,
+                                field: newNameField,
                                 value: valueField
                             };
                             //Agregando valores al arreglo Transaction Fields
                             fieldDataRecord.push(jsonDataRecord);
-                        }
-                        else {
-                            let new_name_field = "";
-                            if (transactionID == '39') {
-                                if (nameField == 'custrecord_lmry_document_type') {
-                                    new_name_field = "custpage_lmry_document_type"
-                                } else if (nameField == 'custrecord_lmry_serie_doc_cxc') {
-                                    new_name_field = 'custpage_serie_doc';
+                        } else {
+                            let newNameField = "";
+                            if (transaction == '39'){
+                                if(nameField == 'custrecord_lmry_document_type'){
+                                    newNameField = 'custpage_lmry_document_type';
+
+                                } else if (nameField == 'custrecord_lmry_serie_doc_cxc'){
+                                    newNameField = 'custpage_serie_doc';
                                 } else {
-                                    new_name_field = nameField.replace('custrecord', 'custbody');
+                                    newNameField = nameField.replace('custrecord', 'custbody');
                                 }
-                            }
-                            else {
-                                new_name_field = nameField.replace('custrecord', 'custbody');
+
+                            } else {
+                                newNameField = nameField.replace('custrecord', 'custbody');
                             }
                             //Objeto de Body Fields
                             let jsonData = {
-                                field: new_name_field,
+                                field: newNameField,
                                 value: valueField
                             };
                             //Agregando valores al arreglo Body Fields
                             fieldData.push(jsonData);
                         }
-                    }
-                    else {
-                        recordName = fieldObj.recordName; //No se para que , pero lo llenaba en la version anterior xd
+                    } else {
+                        recordName = fieldObj.recordName;//No se para que , pero lo llenaba en la version anterior !-_-
                         recordId = fieldObj.recordId;
                     }
                 });
 
                 if (recordName) {
                     recordObj.setValue('custrecord_lmry_setup_us_data_recor_name', recordName);
+
                 }
 
                 if (fieldData.length > 0) {
                     recordObj.setValue('custrecord_lmry_setup_us_data', JSON.stringify(fieldData));
+
                 }
                 //Llenar campo transaction fields data
                 if (fieldDataRecord.length > 0) {
                     recordObj.setValue('custrecord_lmry_setup_us_data_record_id', recordId);
                     recordObj.setValue('custrecord_lmry_setup_us_data_record', JSON.stringify(fieldDataRecord));
+
                 }
             }
         }
 
         const getfieldsHideAndView = (recordObj) => {
 
-            log.debug("Entro ala busqueda new");
             let filterView = [];
             let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
             transaction = Number(transaction);
             let country = recordObj.getValue('custrecord_lmry_us_country') || "";
             country = Number(country);
 
-            if (country && transaction) {
+            if (country && transaction){
                 filterView.push(["custrecord_lmry_setup_us_country", "anyof", country]);
 
                 let isNotaDebito = false, isExportacion = false, isLibreConsigna = false;
@@ -608,11 +613,10 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let viewSearch = search.create({
                 type: "customrecord_lmry_setup_universal_set_v2",
                 filters: filters,
-                columns: ["name", "custrecord_lmry_setup_us_country", "custrecord_lmry_setup_us_record_key", "custrecord_lmry_setup_us_record.scriptid","custrecord_lmry_setup_us_record"]
+                columns: ["name", "custrecord_lmry_setup_us_country", "custrecord_lmry_setup_us_record_key", "custrecord_lmry_setup_us_record.scriptid", "custrecord_lmry_setup_us_record"]
             });
 
             let results = viewSearch.run().getRange(0, 1000);
-
             let hideFields  = [], viewFields = [];
 
             for (let i = 0; i < results.length; i++) {
