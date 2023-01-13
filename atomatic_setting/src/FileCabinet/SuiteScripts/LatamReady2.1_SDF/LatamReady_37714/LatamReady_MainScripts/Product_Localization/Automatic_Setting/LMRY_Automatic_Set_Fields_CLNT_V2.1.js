@@ -302,7 +302,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
             return null;
         }
 
-        const getViewFields = (recordObj) => {
+        const getViewFields = () => {
             let fields = {"none": []};
 
             let viewSearch = search.create({
@@ -314,6 +314,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                 columns:
                     [
                         "name",
+                        "custrecord_lmry_setup_us_record_key",
                         "custrecord_lmry_setup_us_country",
                         "custrecord_lmry_setup_us_vendorbill",
                         "custrecord_lmry_setup_us_vendorcredit",
@@ -338,6 +339,8 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                 name = name.trim();
 
                 let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
+                let isRecordKey = results[i].getValue("custrecord_lmry_setup_us_record_key") || false;
+                isRecordKey = (isRecordKey === "T" || isRecordKey === true);
 
                 if (!country) {
                     fields["none"].push(name);
@@ -370,7 +373,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                         fields[country] = [];
                     }
 
-                    fields[country].push({name: name, types: types});
+                    fields[country].push({name: name, types: types, isRecordKey : isRecordKey});
                 }
             }
 
@@ -447,12 +450,18 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
 
                 viewFields.forEach((obj) => {
                     let fieldObj = recordObj.getField(obj.name);
-                    if (fieldObj) {
+                    if (fieldObj && !obj.isRecordKey && validateARfields(recordObj, obj.name)) {
                         fieldObj.isDisplay = true;
                     }
                 });
             }
 
+        }
+
+        const validateARfields = (recordObj, fieldName) => {
+            let document = recordObj.getValue("custrecord_lmry_document_type");
+            let country = recordObj.getValue("custrecord_lmry_us_country");
+            return (country == 11 && ['custrecord_lmry_document_type_validate', 'custrecord_lmry_serie_doc_cxc_validate'].includes(fieldName) && setupTax && setupTax.arDocumentType == document);
         }
 
         const fillTransactions = (recordObj) => {
