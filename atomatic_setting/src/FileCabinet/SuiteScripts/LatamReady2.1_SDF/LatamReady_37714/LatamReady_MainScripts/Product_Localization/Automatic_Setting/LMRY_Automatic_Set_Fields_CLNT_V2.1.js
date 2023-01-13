@@ -41,7 +41,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
             17: 'vendorBill',
             20: 'vendorCredit',
             32: 'fulfillment',
-            39: 'paymentcomplement'
+            39: 'paymentComplement'
         };
 
         function pageInit(scriptContext) {
@@ -163,7 +163,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                     let check_Bonus = recordObj.getValue('custrecord_set_bonus');
                     let check_Hibrid = recordObj.getValue('custrecord_set_hibrid');
 
-                    let arrayChecks = [check_Service, check_Service, check_Bonus, check_Hibrid];
+                    let arrayChecks = [check_Service, check_Inventory, check_Service, check_Bonus, check_Hibrid];
 
                     let check_Single = arrayChecks.filter((bool) => {
                         return (bool == true)
@@ -187,35 +187,6 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
 
         }
 
-        /**
-         * Validation function to be executed when sublist line is committed.
-         *
-         * @param {Object} scriptContext
-         * @param {Record} scriptContext.currentRecord - Current form record
-         * @param {string} scriptContext.sublistId - Sublist name
-         *
-         * @returns {boolean} Return true if sublist line is valid
-         *
-         * @since 2015.2
-         */
-        function validateLine(scriptContext) {
-
-        }
-
-        /**
-         * Validation function to be executed when sublist line is inserted.
-         *
-         * @param {Object} scriptContext
-         * @param {Record} scriptContext.currentRecord - Current form record
-         * @param {string} scriptContext.sublistId - Sublist name
-         *
-         * @returns {boolean} Return true if sublist line is valid
-         *
-         * @since 2015.2
-         */
-        function validateInsert(scriptContext) {
-
-        }
 
         /**
          * Validation function to be executed when record is saved.
@@ -347,7 +318,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                     let types = [];
                     let transactions = {
                         vendorBill: results[i].getValue("custrecord_lmry_setup_us_vendorbill") || false,
-                        vendoCredit: results[i].getValue("custrecord_lmry_setup_us_vendorcredit") || false,
+                        vendorCredit: results[i].getValue("custrecord_lmry_setup_us_vendorcredit") || false,
                         cashSale: results[i].getValue("custrecord_lmry_setup_us_cashsale") || false,
                         creditMemo: results[i].getValue("custrecord_lmry_setup_us_credit") || false,
                         exportacion: results[i].getValue("custrecord_lmry_setup_us_inv_exp") || false,
@@ -449,7 +420,10 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
 
                 viewFields.forEach((obj) => {
                     let fieldObj = recordObj.getField(obj.name);
-                    if (fieldObj && !obj.isRecordKey && validateARfields(recordObj, obj.name)) {
+                    console.log(obj.isRecordKey);
+                    console.log(obj.name);
+                    console.log(validateARfields(recordObj, obj.name));
+                    if (fieldObj && !obj.isRecordKey && !validateARfields(recordObj, obj.name)) {
                         fieldObj.isDisplay = true;
                     }
                 });
@@ -460,7 +434,8 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
         const validateARfields = (recordObj, fieldName) => {
             let document = recordObj.getValue("custrecord_lmry_document_type");
             let country = recordObj.getValue("custrecord_lmry_us_country");
-            return (country == 11 && ['custrecord_lmry_document_type_validate', 'custrecord_lmry_serie_doc_cxc_validate'].includes(fieldName) && setupTax && setupTax.arDocumentType == document);
+            let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
+            return (country == 11 && transaction == 7 && ['custrecord_lmry_document_type_validate', 'custrecord_lmry_serie_doc_cxc_validate'].includes(fieldName) && setupTax && setupTax.arDocumentType == document);
         }
 
         const fillTransactions = (recordObj) => {
