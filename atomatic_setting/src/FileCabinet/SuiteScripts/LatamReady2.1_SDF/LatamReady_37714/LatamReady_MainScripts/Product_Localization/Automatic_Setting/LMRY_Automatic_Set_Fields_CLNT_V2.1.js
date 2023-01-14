@@ -200,7 +200,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
         function saveRecord(scriptContext) {
             try {
                 //Record Actual
-                recordObj = scriptContext.currentRecord;
+                let recordObj = scriptContext.currentRecord;
                 //ID del país
                 let country = recordObj.getValue('custrecord_lmry_us_country');
                 //ID de la subsidiaria
