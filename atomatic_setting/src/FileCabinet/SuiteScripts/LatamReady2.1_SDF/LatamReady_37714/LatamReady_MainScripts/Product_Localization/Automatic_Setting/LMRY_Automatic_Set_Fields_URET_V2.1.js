@@ -5,7 +5,7 @@
  * @Author rene@latamready.com
  * @NModuleScope public
  */
-define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
+define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './../Latam_Licenses/LMRY_Licenses_LBRY_v2.1', './../Latam_Tools/LMRY_SendEmail_LBRY_v2.1', './../Latam_Tools/LMRY_Log_LBRY_v2.1'],
     /**
      * @param{error} error
      * @param{log} log
@@ -13,7 +13,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
      * @param{search} search
      * @param{serverWidget} serverWidget
      */
-    (error, log, runtime, search, serverWidget, Library_Mail) => {
+    (error, log, runtime, search, serverWidget, Library_Licenses, Library_Mail, Library_Log) => {
         /**
          * Defines the function definition that is executed before record is loaded.
          * @param {Object} scriptContext
@@ -24,6 +24,8 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
          * @since 2015.2
          */
 
+        const ScriptName = "LatamReady - Automatic Set Field URET v2.1";
+        const {FeatureManager} = Library_Licenses;
         let licenses = [];
         let FEAT_SUBSIDIARY = false;
         let FEAT_MULTISUBCUSTOMER = false;
@@ -202,6 +204,8 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
 
             } catch (err) {
                 log.error("[beforeLoad]", err);
+                Library_Mail.sendEmail("[beforeLoad]", err, ScriptName);
+                Library_Log.doLog({title: "[beforeLoad]", message: err});
             }
 
         }
@@ -222,8 +226,8 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             if (["create", "edit", "copy"].includes(eventType)) {
                 if (runtime.excutionContext === "CSVIMPORT") {
                     let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary');
-                    let licenses = Library_Mail.getLicenses(subsidiaryID);
-                    checkFeatureAutomaticSetGen(recordObj, licenses);
+                    let featureManager = new FeatureManager(subsidiaryID);
+                    checkFeatureAutomaticSetGen(recordObj, featureManager);
                 }
 
                 try {
@@ -234,7 +238,8 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
 
                 } catch (err) {
                     log.error('[beforeSubmit]', err);
-
+                    Library_Mail.sendEmail("[beforeSubmit]", err, ScriptName);
+                    Library_Log.doLog({title: "[beforeSubmit]", message: err});
                 }
             }
         }
@@ -245,14 +250,14 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let jsonResult = getfieldsHideAndView(recordObj);
             let hideFields = jsonResult.hideFields;
             let viewFields = jsonResult.viewFields;
-            viewFields = viewFields.filter((v)=>!v.isRecordKey);
+            viewFields = viewFields.filter((v) => !v.isRecordKey);
 
             let setupTax = getSetupTax(recordObj);
 
             hideFields.forEach((fieldName) => {
-                if (!viewFields.find((v)=>v.name === fieldName) && !validateARfields(recordObj, fieldName, setupTax)) {
+                if (!viewFields.find((v) => v.name === fieldName) && !validateARfields(recordObj, fieldName, setupTax)) {
                     let fieldObj = form.getField(fieldName);
-                    if(fieldObj){
+                    if (fieldObj) {
                         fieldObj.updateDisplayType({
                             displayType: serverWidget.FieldDisplayType.HIDDEN
                         })
@@ -277,7 +282,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                         filters.push("AND", ["custrecord_lmry_setuptax_subsidiary", "anyof", subsidiary]);
                     }
 
-                } else if(setupTax){
+                } else if (setupTax) {
                     filters.push("AND", ["internalid", "anyof", setupTax]);
                 }
 
@@ -288,7 +293,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                     columns: ["custrecord_lmry_setuptax_ar_doc_type_val"]
                 })
                 let result = setupTaxSearch.run().getRange(0, 1)
-                if (result && result.length){
+                if (result && result.length) {
                     return {
                         "arDocumentType": result[0].getValue("custrecord_lmry_setuptax_ar_doc_type_val") || ""
                     }
@@ -436,19 +441,19 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                 transactions = [...jsonTransactionByCountry[country]["1"], ...jsonTransactionByCountry[country]["2"]];
             }
 
-            for(let i = 0; i<transactions.length ; i++){
-                let { name, id } = transactionsById[transactions[i]];
-                transactionField.addSelectOption({ value : id, text : name });
+            for (let i = 0; i < transactions.length; i++) {
+                let {name, id} = transactionsById[transactions[i]];
+                transactionField.addSelectOption({value: id, text: name});
             }
         }
 
         //AUTOMATIC FIELDS BY SUBSIDIARY (A/R) -MX
-        const checkFeatureAutomaticSetGen = (recordObj, licenses) => {
+        const checkFeatureAutomaticSetGen = (recordObj, featureManager) => {
             let setupTaxSubsid = recordObj.getValue('custrecord_lmry_us_setuptax');
             let country = recordObj.getValue('custrecord_lmry_us_country');
 
             if (setupTaxSubsid) {
-                if (country != 157 || !Library_Mail.getAuthorization(975, licenses)) {
+                if (country != 157 || !featureManager.isActive(975)) {
                     throw error.create({
                         name: 'ERROR_AUTHOMATIC_SET_SUBSIDIARY',
                         message: 'Disabled feature',
@@ -461,10 +466,10 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
 
         const setArDateFields = (recordObj) => {
             let countryID = recordObj.getValue('custrecord_lmry_us_country');
-            if (countryID == 11){
+            if (countryID == 11) {
                 let arIncConcepts = recordObj.getValue('custrecord_set_ar_inc_concepts');
                 //Solo si el campo LATAM - AR INCLUDED CONCEPTS es Servícios o Productos y Servícios
-                if (arIncConcepts == 2 || arIncConcepts == 3){
+                if (arIncConcepts == 2 || arIncConcepts == 3) {
                     let date = new Date();
                     let firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
                     let lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -485,17 +490,17 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             //ID de la transacción
             let jsonResult = getfieldsHideAndView();
             let viewFields = jsonResult.viewFields;
-            if (viewFields.length){
+            if (viewFields.length) {
                 let recordName = "";
                 let recordId = "";
 
-                viewFields.forEach((fieldObj)=>{
-                    if (!fieldObj.isRecordKey){
+                viewFields.forEach((fieldObj) => {
+                    if (!fieldObj.isRecordKey) {
                         //Nombre del campo
                         let nameField = fieldObj.name;
                         //Valor del campo
                         let valueField = recordObj.getValue(nameField);
-                        if (nameField.startsWith('custrecord_set')){
+                        if (nameField.startsWith('custrecord_set')) {
                             //Reemplazar inicial del campo
                             let newNameField = nameField.replace('custrecord_set', 'custrecord_lmry');
                             //Objeto de transaction Fields
@@ -507,11 +512,11 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
                             fieldDataRecord.push(jsonDataRecord);
                         } else {
                             let newNameField = "";
-                            if (transaction == '39'){
-                                if(nameField == 'custrecord_lmry_document_type'){
+                            if (transaction == '39') {
+                                if (nameField == 'custrecord_lmry_document_type') {
                                     newNameField = 'custpage_lmry_document_type';
 
-                                } else if (nameField == 'custrecord_lmry_serie_doc_cxc'){
+                                } else if (nameField == 'custrecord_lmry_serie_doc_cxc') {
                                     newNameField = 'custpage_serie_doc';
                                 } else {
                                     newNameField = nameField.replace('custrecord', 'custbody');
@@ -560,7 +565,7 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             let country = recordObj.getValue('custrecord_lmry_us_country') || "";
             country = Number(country);
 
-            if (country && transaction){
+            if (country && transaction) {
                 filterView.push(["custrecord_lmry_setup_us_country", "anyof", country]);
 
                 let isNotaDebito = false, isExportacion = false, isLibreConsigna = false;
@@ -617,24 +622,24 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', '/Suit
             });
 
             let results = viewSearch.run().getRange(0, 1000);
-            let hideFields  = [], viewFields = [];
+            let hideFields = [], viewFields = [];
 
             for (let i = 0; i < results.length; i++) {
                 let name = results[i].getValue("name") || "";
                 name = name.trim();
                 let country = results[i].getValue("custrecord_lmry_setup_us_country") || "";
-                let recordId = results[i].getValue({ name : "custrecord_lmry_setup_us_record"});
-                let recordName = results[i].getValue({ name : "scriptid", join : "custrecord_lmry_setup_us_record"});
+                let recordId = results[i].getValue({name: "custrecord_lmry_setup_us_record"});
+                let recordName = results[i].getValue({name: "scriptid", join: "custrecord_lmry_setup_us_record"});
                 let isRecordKey = results[i].getValue("custrecord_lmry_setup_us_record_key") || false;
                 isRecordKey = (isRecordKey === "T" || isRecordKey === true);
                 if (country) {
-                    viewFields.push({ name : name, recordId: recordId, recordName: recordName, isRecordKey :isRecordKey });
+                    viewFields.push({name: name, recordId: recordId, recordName: recordName, isRecordKey: isRecordKey});
                 } else {
                     hideFields.push(name);
                 }
             }
 
-            return { viewFields : viewFields, hideFields : hideFields };
+            return {viewFields: viewFields, hideFields: hideFields};
 
         }
         return {

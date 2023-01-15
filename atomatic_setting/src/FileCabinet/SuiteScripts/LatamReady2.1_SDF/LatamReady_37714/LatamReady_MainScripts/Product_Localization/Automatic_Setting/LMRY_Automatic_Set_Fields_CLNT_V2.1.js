@@ -5,14 +5,14 @@
  * @Author rene@latamready.com
  * @NModuleScope public
  */
-define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 35754/Latam_Library/LMRY_libSendingEmailsLBRY_V2.0'],
+define(['N/log', 'N/record', 'N/runtime', 'N/search', './../Latam_Licenses/LMRY_Licenses_LBRY_v2.1', './../Latam_Tools/LMRY_SendEmail_LBRY_v2.1', './../Latam_Tools/LMRY_Log_LBRY_v2.1'],
     /**
      * @param{log} log
      * @param{record} record
      * @param{runtime} runtime
      * @param{search} search
      */
-    function (log, record, runtime, search, Library_Mail) {
+    function (log, record, runtime, search, Library_Licenses, Library_Mail, Library_Log) {
 
         /**
          * Function to be executed after page is initialized.
@@ -24,10 +24,12 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
          * @since 2015.2
          */
 
+        const {FeatureManager} = Library_Licenses;
+        const ScriptName = "LatamReady - Automatic Set Fields CLNT v2.1";
         let actionType = "";
         let fields = {};
         let setupTax = null;
-        let licenses = [];
+        let featureManager;
         let FEAT_SUBSIDIARY = false;
 
         const countryDocuments = [11, 29, 30, 91, 157, 173, 174, 186, 231];
@@ -45,19 +47,24 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
         };
 
         function pageInit(scriptContext) {
-            actionType = scriptContext.mode;
-            if(['create','edit','copy'].includes(actionType)){
-                let recordObj = scriptContext.currentRecord;
-                FEAT_SUBSIDIARY = runtime.isFeatureInEffect({feature: 'SUBSIDIARIES'});
-                fields = getViewFields();
-                hideAndView(recordObj);
-                console.log(fields)
-                if (actionType === "create") {
-                    setupTax = getSetupTax(recordObj);
-                    console.log(setupTax);
+            try {
+                actionType = scriptContext.mode;
+                if (['create', 'edit', 'copy'].includes(actionType)) {
+                    let recordObj = scriptContext.currentRecord;
+                    FEAT_SUBSIDIARY = runtime.isFeatureInEffect({feature: 'SUBSIDIARIES'});
+                    fields = getViewFields();
+                    hideAndView(recordObj);
+                    console.log(fields)
+                    if (actionType === "create") {
+                        setupTax = getSetupTax(recordObj);
+                        console.log(setupTax);
+                    }
                 }
+            }catch(err){
+                console.error("[pageInit]", err);
+                Library_Mail.sendEmail("[pageInit]", err, ScriptName);
+                Library_Log.doLog({ title : "[pageInit]", message : err });
             }
-
         }
 
         /**
@@ -181,6 +188,8 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
 
             } catch (err) {
                 console.error("[validateField]", err);
+                Library_Mail.sendEmail("[validateField]", err, ScriptName);
+                Library_Log.doLog({ title : "[validateField]", message : err });
                 return false;
             }
             return true;
@@ -209,8 +218,8 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                 let setupTax = recordObj.getValue('custrecord_lmry_us_setuptax');
 
                 if (setupTax){
-                    licenses = Library_Mail.getLicenses(subsidiary);
-                    if (country != 157 || !Library_Mail.getAuthorization(915, licenses)){
+                    featureManager = new FeatureManager(subsidiary);
+                    if (country != 157 || !featureManager.isActive(915)){
                         alert('AUTOMATIC FIELDS BY SUBSIDIARY (A/R) feature is disabled');
                         return false;
                     }
@@ -233,6 +242,8 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', '/SuiteBundles/Bundle 3575
                 
             } catch (err) {
                 log.error("[saveRecord]", err);
+                Library_Mail.sendEmail("[saveRecord]", err, ScriptName);
+                Library_Log.doLog({ title : "[saveRecord]", message : err });
             }
 
         }
