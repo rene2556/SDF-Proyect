@@ -219,7 +219,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', './../Latam_Licenses/LMRY_
 
                 if (setupTax){
                     featureManager = new FeatureManager(subsidiary);
-                    if (country != 157 || !featureManager.isActive(915)){
+                    if (country != 157 || !featureManager.isActive(975)){
                         alert('AUTOMATIC FIELDS BY SUBSIDIARY (A/R) feature is disabled');
                         return false;
                     }
@@ -238,6 +238,18 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', './../Latam_Licenses/LMRY_
                     }
                 }
 
+                if ((actionType == 'create' || actionType == 'copy') && replicatedData(recordObj)) {
+                    alert('The entity already has a configuration');
+                    return false;
+                }
+                else if (actionType == 'edit' && replicatedData(recordObj)) {
+                    alert('The entity already has a configuration');
+                    return false;
+                }
+                else {
+                    return true;
+                }
+
 
                 
             } catch (err) {
@@ -246,6 +258,151 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', './../Latam_Licenses/LMRY_
                 Library_Log.doLog({ title : "[saveRecord]", message : err });
             }
 
+        }
+
+        const replicatedData = (recordObj) => {
+            //ID de la subsidiaria
+            let subsidiaryID = recordObj.getValue('custrecord_lmry_us_subsidiary');
+            //ID de la entidad
+            let entityID = recordObj.getValue('custrecord_lmry_us_entity');
+            //ID de la transacción
+            let transactionID = recordObj.getValue('custrecord_lmry_us_transaction');
+            //ID del país
+            let countryID = recordObj.getValue('custrecord_lmry_us_country');
+            //ID del documento
+            let documentID = recordObj.getValue('custrecord_lmry_document_type');
+            //ID de la subsidiaria (Setup Tax Subsidiary)
+            let stSubsidiaryID = recordObj.getValue('custrecord_lmry_us_setuptax');
+            //Check de facturación
+            let check_Fact = '';
+
+            if (documentID) {
+                let recordDocument = search.lookupFields({
+                    type: 'customrecord_lmry_tipo_doc',
+                    id: documentID,
+                    columns: ['custrecord_lmry_fact_electronica']
+                });
+                check_Fact = recordDocument.custrecord_lmry_fact_electronica;
+            }
+            else {
+                check_Fact = 'F';
+            }
+
+            //Filtros
+            let filters = [];
+
+            filters.push(search.createFilter({
+                name: 'isinactive',
+                operator: search.Operator.IS,
+                values: ['F']
+            }));
+
+            filters.push(search.createFilter({
+                name: 'custrecord_lmry_us_country',
+                operator: search.Operator.ANYOF,
+                values: countryID
+            }));
+            console.log("transation: ",transactionID);
+            filters.push(search.createFilter({
+                name: 'custrecord_lmry_us_transaction',
+                operator: search.Operator.ANYOF,
+                values: transactionID
+            }));
+
+            if (stSubsidiaryID) {
+                filters.push(search.createFilter({
+                    name: 'custrecord_lmry_us_entity',
+                    operator: search.Operator.ANYOF,
+                    values: "@NONE@"
+                }));
+
+                filters.push(search.createFilter({
+                    name: 'custrecord_lmry_us_setuptax',
+                    operator: search.Operator.ANYOF,
+                    values: stSubsidiaryID
+                }));
+            }
+            else {
+                filters.push(search.createFilter({
+                    name: 'custrecord_lmry_us_entity',
+                    operator: search.Operator.ANYOF,
+                    values: entityID
+                }));
+            }
+
+            filters.push(search.createFilter({
+                name: 'custrecord_lmry_us_subsidiary',
+                operator: search.Operator.ANYOF,
+                values: subsidiaryID
+            }));
+
+            if (transactionID == 5 || transactionID == 7 || transactionID == 10 || transactionID == 16 || transactionID == 17 || transactionID == 20 || transactionID == 32 || transactionID == 39) {
+                filters.push(search.createFilter({
+                    name: 'custrecord_lmry_fact_electronica',
+                    operator: search.Operator.IS,
+                    values: check_Fact,
+                    join: 'custrecord_lmry_document_type'
+                }));
+            }
+
+            if (actionType == 'edit') {
+                filters.push(search.createFilter({
+                    name: 'internalid',
+                    operator: search.Operator.NONEOF,
+                    values: recordObj.id
+                }));
+            }
+
+            //Filtro para Brasil según los checks
+            if (countryID == 30) {
+                if (recordObj.getValue('custrecord_set_bonus')) {
+                    filters.push(search.createFilter({
+                        name: 'custrecord_set_bonus',
+                        operator: search.Operator.IS,
+                        values: ['T']
+                    }));
+                }
+                else if (recordObj.getValue('custrecord_set_service')) {
+                    filters.push(search.createFilter({
+                        name: 'custrecord_set_service',
+                        operator: search.Operator.IS,
+                        values: ['T']
+                    }));
+                }
+                else if (recordObj.getValue('custrecord_set_inventory')) {
+                    filters.push(search.createFilter({
+                        name: 'custrecord_set_inventory',
+                        operator: search.Operator.IS,
+                        values: ['T']
+                    }));
+                }
+                else {
+                    filters.push(search.createFilter({
+                        name: 'custrecord_set_hibrid',
+                        operator: search.Operator.IS,
+                        values: ['T']
+                    }));
+                }
+            }
+
+            //Columnas
+            let columns = [];
+
+            columns.push(search.createColumn({
+                name: 'internalid'
+            }));
+            let dataReplicated = search.create({
+                type: 'customrecord_lmry_universal_setting_v2',
+                columns: columns,
+                filters: filters
+            });
+
+            dataReplicated = dataReplicated.run().getRange(0, 10);
+            if (dataReplicated && dataReplicated.length) {
+                return true;
+            } else {
+                return false;
+            }
         }
 
         const getSetupTax = (recordObj) => {
@@ -431,9 +588,6 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search', './../Latam_Licenses/LMRY_
 
                 viewFields.forEach((obj) => {
                     let fieldObj = recordObj.getField(obj.name);
-                    console.log(obj.isRecordKey);
-                    console.log(obj.name);
-                    console.log(validateARfields(recordObj, obj.name));
                     if (fieldObj && !obj.isRecordKey && !validateARfields(recordObj, obj.name)) {
                         fieldObj.isDisplay = true;
                     }

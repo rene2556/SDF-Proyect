@@ -1,9 +1,9 @@
-<usereventscript scriptid="customscript_test_aut_set_field_uret_2_1">
+<usereventscript scriptid="customscript_lmry_aut_set_field_uret_2_1">
     <name>LatamReady - Automatic SetField URET 2.1</name>
     <notifyowner>T</notifyowner>
     <scriptfile>[/SuiteScripts/LatamReady2.1_SDF/LatamReady_37714/LatamReady_MainScripts/Product_Localization/Automatic_Setting/LMRY_Automatic_Set_Fields_URET_V2.1.js]</scriptfile>
     <scriptdeployments>
-        <scriptdeployment scriptid="customdeploy_test_aut_set_field_uret_2_1">
+        <scriptdeployment scriptid="customdeploy_lmry_aut_set_field_uret_2_1">
             <isdeployed>T</isdeployed>
             <loglevel>DEBUG</loglevel>
             <recordtype>[scriptid=customrecord_lmry_universal_setting_v2]</recordtype>

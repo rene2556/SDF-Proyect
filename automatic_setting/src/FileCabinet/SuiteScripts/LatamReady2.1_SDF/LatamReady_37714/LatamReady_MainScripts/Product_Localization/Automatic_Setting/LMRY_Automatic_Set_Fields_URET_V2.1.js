@@ -488,7 +488,9 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './../
             let fieldDataRecord = [];
 
             //ID de la transacción
-            let jsonResult = getfieldsHideAndView();
+            //ID de la transacción
+            let transaction = recordObj.getValue('custrecord_lmry_us_transaction') || "";
+            let jsonResult = getfieldsHideAndView(recordObj);
             let viewFields = jsonResult.viewFields;
             if (viewFields.length) {
                 let recordName = "";
@@ -538,16 +540,17 @@ define(['N/error', 'N/log', 'N/runtime', 'N/search', 'N/ui/serverWidget', './../
                         recordId = fieldObj.recordId;
                     }
                 });
-
+                //log.debug("recordName", recordName);
                 if (recordName) {
                     recordObj.setValue('custrecord_lmry_setup_us_data_recor_name', recordName);
 
                 }
-
+                //log.debug("fieldData", fieldData.length);
                 if (fieldData.length > 0) {
                     recordObj.setValue('custrecord_lmry_setup_us_data', JSON.stringify(fieldData));
 
                 }
+                log.debug("fieldDataRecord", fieldDataRecord.length);
                 //Llenar campo transaction fields data
                 if (fieldDataRecord.length > 0) {
                     recordObj.setValue('custrecord_lmry_setup_us_data_record_id', recordId);
